@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Tài Xỉu Casino</title>
+<style>
+/* ===== Body ===== */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Arial', sans-serif;
+  background: linear-gradient(to bottom, #8b0000, #000);
+  color: #fff;
+  text-align: center;
+}
+
+/* ===== Owner ===== */
+#owner {
+  position: fixed;
+  top: 5px;
+  left: 5px;
+  font-weight: bold;
+  font-size: 16px;
+  color: #ffd700;
+  text-shadow: 1px 1px 2px #000;
+  z-index: 999;
+}
+
+/* ===== Panels ===== */
+#loginPanel, #gamePanel {
+  padding: 15px;
+}
+input, button {
+  padding: 8px;
+  margin: 4px;
+  border-radius: 5px;
+  border: none;
+  font-size: 14px;
+}
+button { cursor: pointer; transition: 0.2s; }
+button:hover { opacity: 0.8; }
+
+/* ===== Wallet ===== */
+#wallet {
+  font-size: 16px;
+  margin: 10px 0;
+}
+#selectedBet {
+  margin: 5px 0;
+  font-weight: bold;
+}
+
+/* ===== Dice ===== */
+#diceArea {
+  margin: 15px 0;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+.dice {
+  width: 60px;
+  height: 60px;
+  background: #fff;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: #000;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.7), 0 0 3px #ffd700 inset;
+  transition: transform 0.5s;
+}
+
+/* ===== Chips ===== */
+#chipArea {
+  margin: 10px 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.chip {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #fff;
+  cursor: pointer;
+  border: 2px solid #fff;
+  font-size: 12px;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+  transition: all 0.3s ease;
+}
+.chip:hover { transform: scale(1.2); border-color: #ffd700; }
+
+/* Chip colors */
+.chip[data-value="1000"] { background: linear-gradient(145deg,#4caf50,#087f23); }
+.chip[data-value="5000"] { background: linear-gradient(145deg,#2196f3,#0d47a1); }
+.chip[data-value="10000"] { background: linear-gradient(145deg,#ff9800,#e65100); }
+.chip[data-value="50000"] { background: linear-gradient(145deg,#e91e63,#880e4f); }
+.chip[data-value="1000000"] { background: linear-gradient(145deg,#ffeb3b,#fbc02d); }
+.chip[data-value="2000000"] { background: linear-gradient(145deg,#ff9800,#f57c00); }
+.chip[data-value="5000000"] { background: linear-gradient(145deg,#e91e63,#c2185b); }
+
+/* ===== Effects ===== */
+.flash-win { animation: flashWin 0.5s; }
+.flash-lose { animation: flashLose 0.5s; }
+@keyframes flashWin {
+  0%{background:#121212;} 50%{background:#2e7d32;} 100%{background:#121212;}
+}
+@keyframes flashLose {
+  0%{background:#121212;} 50%{background:#b71c1c;} 100%{background:#121212;}
+}
+
+/* ===== Admin ===== */
+#adminPanel {
+  margin-top: 10px;
+  border-top: 1px solid #fff;
+  padding-top: 5px;
+  display: none;
+}
+textarea { width: 100%; height: 80px; font-size: 12px; }
+</style>
+</head>
+<body>
+<div id="owner">lowt</div>
+
+<!-- ===== Login/Register ===== -->
+<div id="loginPanel">
+<h2>Đăng nhập / Đăng ký</h2>
+<input type="text" id="username" placeholder="Tên đăng nhập">
+<input type="password" id="password" placeholder="Mật khẩu">
+<br>
+<button onclick="login()">Đăng nhập</button>
+<button onclick="register()">Đăng ký</button>
+<p id="loginMsg" style="color:yellow;"></p>
+</div>
+
+<!-- ===== Game Panel ===== -->
+<div id="gamePanel" style="display:none;">
+<h2>Chào, <span id="userName"></span></h2>
+<button onclick="logout()">Đăng xuất</button>
+<div id="wallet">Ví: <span id="money">0</span> $</div>
+
+<div id="diceArea">
+  <div id="dice1" class="dice">🎲</div>
+  <div id="dice2" class="dice">🎲</div>
+  <div id="dice3" class="dice">🎲</div>
+</div>
+
+<div id="result" style="font-size:16px;margin:5px;"></div>
+
+<div id="chipArea">
+  <div class="chip" data-value="1000">1K</div>
+  <div class="chip" data-value="5000">5K</div>
+  <div class="chip" data-value="10000">10K</div>
+  <div class="chip" data-value="50000">50K</div>
+  <div class="chip" data-value="1000000">1M</div>
+  <div class="chip" data-value="2000000">2M</div>
+  <div class="chip" data-value="5000000">5M</div>
+</div>
+
+<div id="selectedBet">Cược: 0 $ | Chọn: -</div>
+<button onclick="chooseBet('Tài')">Tài</button>
+<button onclick="chooseBet('Xỉu')">Xỉu</button>
+<button onclick="rollDice()">Quay xúc xắc</button>
+<br>
+<button onclick="claimTask()">Nhận nhiệm vụ 30s</button>
+<button onclick="enterCode()">Nhập code</button>
+
+<!-- Admin Panel -->
+<div id="adminPanel">
+<h3>Admin Panel</h3>
+Tỉ lệ thắng (0-1): <input type="number" id="adminWinRate" step="0.01" min="0" max="1">
+<button onclick="adminSetWinRate()">Cập nhật</button><br>
+Tạo code: <input type="text" id="adminCode" placeholder="Code">
+Số tiền: <input type="number" id="adminCodeAmount" placeholder="Số tiền">
+<button onclick="adminCreateCode()">Tạo code</button><br>
+Cộng/trừ tiền user: User <input type="text" id="adminTarget">
+Số tiền <input type="number" id="adminAmount">
+<button onclick="adminAddMoney()">Cộng</button>
+<button onclick="adminDeductMoney()">Trừ</button><br>
+<button onclick="adminViewLogs()">Xem log dice</button>
+<textarea id="logArea" readonly></textarea>
+<br>
+<button onclick="showAllUsers()">Danh sách user</button>
+</div>
+
+<script>
+// ==== JavaScript giữ nguyên ====
+let users = JSON.parse(localStorage.getItem("users")||"{}");
+if(!users["lowt"]){
+    users["lowt"] = {password:"tram1002", money:1000000, logs:[], isAdmin:true};
+    localStorage.setItem("users", JSON.stringify(users));
+}
+let currentUser=null, selectedBetAmount=0, selectedChoice=null, winRate=0.05, taskCooldown=false, codeList={};
+
+function login(){
+    const u = document.getElementById("username").value;
+    const p = document.getElementById("password").value;
+    if(users[u] && users[u].password===p){
+        currentUser=u;
+        document.getElementById("loginPanel").style.display="none";
+        document.getElementById("gamePanel").style.display="block";
+        document.getElementById("userName").innerText=currentUser;
+        updateWallet(); showAdminPanel();
+        document.getElementById("loginMsg").innerText="";
+    } else { document.getElementById("loginMsg").innerText="Sai tên hoặc mật khẩu!"; }
+}
+function register(){
+    const u = document.getElementById("username").value;
+    const p = document.getElementById("password").value;
+    if(users[u]){document.getElementById("loginMsg").innerText="Tên đã tồn tại!"; return;}
+    users[u]={password:p, money:500000, logs:[], isAdmin:false};
+    localStorage.setItem("users",JSON.stringify(users));
+    document.getElementById("loginMsg").innerText="Đăng ký thành công!";
+}
+function logout(){ currentUser=null; document.getElementById("loginPanel").style.display="block"; document.getElementById("gamePanel").style.display="none"; selectedBetAmount=0; selectedChoice=null; }
+function updateWallet(){ document.getElementById("money").innerText=users[currentUser].money.toLocaleString(); document.getElementById("selectedBet").innerText="Cược: "+selectedBetAmount.toLocaleString()+" $ | Chọn: "+(selectedChoice||"-"); }
+document.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>{ selectedBetAmount=parseInt(c.dataset.value); document.querySelectorAll(".chip").forEach(ch=>ch.classList.remove("selected")); c.classList.add("selected"); updateWallet(); }));
+function chooseBet(choice){selectedChoice=choice;updateWallet();}
+function rollDice(){
+    if(!selectedChoice||selectedBetAmount<=0){alert("Chọn cược và chip trước khi quay!");return;}
+    if(users[currentUser].money<selectedBetAmount){alert("Không đủ tiền!");return;}
+    let diceNums=[]; for(let i=0;i<3;i++){diceNums.push(Math.floor(Math.random()*6)+1);}
+    diceNums.forEach((num,i)=>{let diceEl=document.getElementById("dice"+(i+1)); let animCount=0; let interval=setInterval(()=>{let r=Math.floor(Math.random()*6)+1; diceEl.innerText=r; animCount++; if(animCount>10){clearInterval(interval); diceEl.innerText=num;}},50);});
+    let sum=diceNums.reduce((a,b)=>a+b,0);
+    let result=sum>=11?"Tài":"Xỉu";
+    if(Math.random()<winRate){result=selectedChoice;}
+    let win=false; if(result===selectedChoice){win=true; users[currentUser].money+=selectedBetAmount;} else{users[currentUser].money-=selectedBetAmount;}
+    updateWallet(); document.getElementById("result").innerText=`Kết quả: ${result} | Tổng: ${sum}`; document.getElementById("result").className=win?"flash-win":"flash-lose";
+    users[currentUser].logs.push({dice:diceNums,bet:selectedChoice,amount:selectedBetAmount,win:win}); localStorage.setItem("users",JSON.stringify(users));
+}
+function claimTask(){ if(taskCooldown){alert("Đợi 30s lần sau!"); return;} users[currentUser].money+=100000; taskCooldown=true; updateWallet(); setTimeout(()=>{taskCooldown=false;},30000); alert("Nhận 100k nhiệm vụ!"); }
+function enterCode(){ let code=prompt("Nhập code:"); if(code && codeList[code]){users[currentUser].money+=codeList[code]; alert("Nhận "+codeList[code].toLocaleString()+" $"); delete codeList[code]; updateWallet();} else alert("Code không hợp lệ!"); }
+function showAdminPanel(){ if(users[currentUser].isAdmin) document.getElementById("adminPanel").style.display="block"; else document.getElementById("adminPanel").style.display="none"; }
+function adminSetWinRate(){ let val=parseFloat(document.getElementById("adminWinRate").value); if(val>=0 && val<=1){winRate=val; alert("Cập nhật tỉ lệ thắng "+(val*100)+"%");} else alert("Nhập số từ 0 đến 1"); }
+function adminCreateCode(){ let c=document.getElementById("adminCode").value; let amt=parseInt(document.getElementById("adminCodeAmount").value); if(c&&amt>0){codeList[c]=amt; alert("Tạo code "+c+" thành công!");} }
+function adminAddMoney(){ let u=document.getElementById("adminTarget").value; let amt=parseInt(document.getElementById("adminAmount").value); if(users[u]&&amt>0){users[u].money+=amt; updateWallet(); alert("Cộng tiền thành công!");} }
+function adminDeductMoney(){ let u=document.getElementById("adminTarget").value; let amt=parseInt(document.getElementById("adminAmount").value); if(users[u]&&amt>0){users[u].money-=amt; updateWallet(); alert("Trừ tiền thành công!");} }
+function adminViewLogs(){ document.getElementById("logArea").value=JSON.stringify(users[currentUser].logs,null,2); }
+function showAllUsers(){ let txt=""; for(let u in users){ txt+=u+" | "+users[u].money.toLocaleString()+" $ | admin:"+users[u].isAdmin+"\n"; } document.getElementById("logArea").value=txt; }
+</script>
+</body>
+</html>
