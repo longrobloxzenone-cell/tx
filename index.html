@@ -7,7 +7,7 @@
 <style>
 body { margin:0; padding:0; background: radial-gradient(circle,#0f0c29,#302b63,#24243e); font-family:Arial; color:white; text-align:center; }
 h2 { color:#ffd700; text-shadow:0 0 8px #fff; }
-#gameBox, #adminPanel, #playersBox, #chatBox { background: rgba(0,0,0,0.7); width:380px; margin:20px auto; padding:20px; border-radius:20px; box-shadow:0 0 25px #ff00ff; }
+#gameBox, #adminPanel, #playersBox, #chatBox { background: rgba(0,0,0,0.7); width:380px; margin:20px auto; padding:20px; border-radius:20px; box-shadow:0 0 25px #ff00ff; transition:0.3s; }
 .dice { font-size:50px; margin:15px; display:flex; justify-content:center; gap:10px; }
 .dice span { width:60px; height:60px; line-height:60px; display:inline-block; background: rgba(255,255,255,0.1); border-radius:10px; box-shadow:0 0 10px #fff; transition:0.2s; }
 .winEffect { animation: glow 0.8s infinite alternate; }
@@ -16,11 +16,12 @@ h2 { color:#ffd700; text-shadow:0 0 8px #fff; }
 @keyframes glow { from{box-shadow:0 0 15px #00ff00} to{box-shadow:0 0 35px #00ff00} }
 button { margin:5px; padding:8px; border-radius:10px; border:none; font-size:16px; cursor:pointer; box-shadow:0 0 5px #fff; transition:0.2s; }
 button:hover { transform:scale(1.05); box-shadow:0 0 15px #fff; }
-.playerCard { background: rgba(255,255,255,0.1); margin:8px 0; padding:10px; border-radius:10px; box-shadow:0 0 10px #fff; text-align:left; }
+.playerCard { background: rgba(255,255,255,0.1); margin:8px 0; padding:10px; border-radius:10px; box-shadow:0 0 10px #fff; text-align:left; transition:0.3s; }
+.playerCard:hover { background: rgba(255,255,255,0.2); box-shadow:0 0 20px #fff; }
 .playerCard .money { color:#00ff00; font-weight:bold; }
 .playerCard .bet { color:#ffd700; font-weight:bold; }
 .playerCard .role { color:#ff69b4; font-weight:bold; }
-#notification { position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#ff0;color:#000;padding:10px 20px;border-radius:10px;display:none;box-shadow:0 0 15px #fff;z-index:999;}
+#notification { position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#ff0;color:#000;padding:10px 20px;border-radius:10px;display:none;box-shadow:0 0 15px #fff;z-index:999; font-weight:bold;}
 #chatBox input { padding:5px; border-radius:5px; border:none; }
 </style>
 </head>
@@ -40,7 +41,7 @@ button:hover { transform:scale(1.05); box-shadow:0 0 15px #fff; }
 </div>
 
 <!-- Game Box -->
-<div id="gameBox" class="hidden">
+<div id="gameBox" style="display:none;">
   <p>Xin chào: <span id="userEmail"></span></p>
   <p>Ví: <span id="money">0</span> $</p>
   <button onclick="logout()">Đăng xuất</button>
@@ -69,7 +70,7 @@ button:hover { transform:scale(1.05); box-shadow:0 0 15px #fff; }
   </div>
 
   <!-- Admin Panel -->
-  <div id="adminPanel" class="hidden">
+  <div id="adminPanel" style="display:none;">
     <h3>💼 ADMIN PANEL</h3>
     ⚠ **Ép kết quả:** 
     <button onclick="forceResult('Tài')">Ép Tài</button>
@@ -132,16 +133,20 @@ async function login(){ await signInWithEmailAndPassword(auth,email.value,passwo
 function logout(){ signOut(auth); }
 
 onAuthStateChanged(auth,async user=>{
-  if(!user){ authBox.classList.remove("hidden"); gameBox.classList.add("hidden"); return; }
+  if(!user){ authBox.style.display="block"; gameBox.style.display="none"; return; }
   currentUser = user;
   userEmail.innerText = user.email;
-  authBox.classList.add("hidden"); gameBox.classList.remove("hidden");
+  authBox.style.display="none"; gameBox.style.display="block";
 
   const userRef = doc(db,"users",user.uid);
   const docSnap = await getDoc(userRef);
   if(!docSnap.exists()) await setDoc(userRef,{email:user.email,money:1000,bet:0,isAdmin:false});
 
-  onSnapshot(userRef,d=>{ moneyEl.innerText=d.data().money; adminPanel.classList.toggle("hidden",!d.data().isAdmin); });
+  onSnapshot(userRef,d=>{
+    const userData = d.data();
+    moneyEl.innerText=userData.money;
+    adminPanel.style.display = userData.isAdmin?"block":"none"; // Chỉ admin thấy
+  });
 });
 
 // -------- GAME --------
