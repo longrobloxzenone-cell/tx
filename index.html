@@ -29,7 +29,6 @@ button:hover { transform:scale(1.05); box-shadow:0 0 15px #fff; }
 
 <h2>🎲 TÀI XỈU CASINO v9 + Chat</h2>
 
-<!-- Notification -->
 <div id="notification">Thông báo</div>
 
 <!-- Auth -->
@@ -55,13 +54,11 @@ button:hover { transform:scale(1.05); box-shadow:0 0 15px #fff; }
   <button onclick="setChoice('Xỉu')">Xỉu</button><br>
   <button onclick="roll()">Quay</button>
 
-  <!-- Player list -->
   <div id="playersBox">
     <h3>🎮 Người chơi</h3>
     <div id="playerList"></div>
   </div>
 
-  <!-- Chat Box -->
   <div id="chatBox">
     <h3>💬 Chat tổng</h3>
     <div id="chatMessages" style="height:150px;overflow-y:auto;border:1px solid #fff;padding:5px;margin-bottom:5px;"></div>
@@ -69,7 +66,6 @@ button:hover { transform:scale(1.05); box-shadow:0 0 15px #fff; }
     <button onclick="sendChat()">Gửi</button>
   </div>
 
-  <!-- Admin Panel -->
   <div id="adminPanel" style="display:none;">
     <h3>💼 ADMIN PANEL</h3>
     ⚠ **Ép kết quả:** 
@@ -93,16 +89,17 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebas
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, increment, collection, addDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-// Firebase config
+// Firebase mới
 const firebaseConfig = {
-  apiKey: "AIzaSyAyUe1QL_olzsDOSd2-hNlI-Y-mjPG8WpQ",
-  authDomain: "tx78-78.firebaseapp.com",
-  projectId: "tx78-78",
-  storageBucket: "tx78-78.firebasestorage.app",
-  messagingSenderId: "166220100814",
-  appId: "1:166220100814:web:928271b561494aa3190c9f",
-  measurementId: "G-LQDTCNZ2W5"
+  apiKey: "AIzaSyC7MuVncVnX7FRwLkqLaQHrXOYULe80QCY",
+  authDomain: "mylist644.firebaseapp.com",
+  projectId: "mylist644",
+  storageBucket: "mylist644.firebasestorage.app",
+  messagingSenderId: "185723905502",
+  appId: "1:185723905502:web:efe5c0640b3a7cc992694f",
+  measurementId: "G-YF8TYKTBBE"
 };
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
