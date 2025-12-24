@@ -2,55 +2,92 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Tài Xỉu Firebase</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tài Xỉu Firebase</title>
+
 <style>
-body{background:#111;color:#fff;font-family:Arial;text-align:center}
-input,button{padding:8px;margin:5px}
+body{
+  background:linear-gradient(to bottom,#8b0000,#000);
+  color:#fff;font-family:Arial Black;text-align:center;margin:0
+}
+#owner{position:fixed;top:10px;left:10px;color:#ffd700;font-size:20px}
+input,button{padding:8px;margin:5px;border-radius:5px;border:none}
 button{cursor:pointer}
-#game{display:none}
+#wallet{font-size:20px;margin:10px}
+#diceArea{display:flex;justify-content:center;gap:15px;margin:20px}
+.dice{width:80px;height:80px;background:#fff;border-radius:12px;
+display:flex;align-items:center;justify-content:center;font-size:36px;color:#000}
+.chip{width:70px;height:70px;border-radius:50%;display:inline-flex;
+align-items:center;justify-content:center;margin:8px;font-weight:bold;cursor:pointer}
+.chip.selected{border:3px solid #ffd700}
+#adminPanel{display:none;border-top:1px solid #fff;margin-top:15px;padding-top:10px}
+#chatBox{width:300px;margin:auto;border:1px solid #fff;padding:5px}
+#chatMessages{height:150px;overflow-y:auto;background:#222;text-align:left;padding:5px}
 </style>
 </head>
+
 <body>
+<div id="owner">lowt</div>
 
-<h2>TÀI XỈU FIREBASE</h2>
-
-<div id="auth">
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Mật khẩu"><br>
-  <button onclick="register()">Đăng ký</button>
+<div id="loginPanel">
+  <h2>Đăng nhập / Đăng ký</h2>
+  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Password"><br>
   <button onclick="login()">Đăng nhập</button>
-  <p id="msg"></p>
+  <button onclick="register()">Đăng ký</button>
 </div>
 
-<div id="game">
-  <h3>Xin chào: <span id="userEmail"></span></h3>
-  <p>Tiền: <span id="money">0</span></p>
+<div id="gamePanel" style="display:none">
+  <h2>Xin chào <span id="userName"></span></h2>
   <button onclick="logout()">Đăng xuất</button>
+  <div id="wallet">Ví: <span id="money">0</span> $</div>
+
+  <div id="diceArea">
+    <div class="dice" id="d1">🎲</div>
+    <div class="dice" id="d2">🎲</div>
+    <div class="dice" id="d3">🎲</div>
+  </div>
+
+  <div id="result"></div>
+
+  <div>
+    <div class="chip" data-v="1000">1K</div>
+    <div class="chip" data-v="5000">5K</div>
+    <div class="chip" data-v="10000">10K</div>
+  </div>
+
+  <div id="betInfo">Cược: 0 | Chọn: -</div>
+  <button onclick="choose('Tài')">Tài</button>
+  <button onclick="choose('Xỉu')">Xỉu</button>
+  <button onclick="roll()">Quay</button>
+
+  <div id="chatBox">
+    <div id="chatMessages"></div>
+    <input id="chatInput" placeholder="Chat...">
+    <button onclick="sendChat()">Gửi</button>
+  </div>
+
+  <div id="adminPanel">
+    <h3>ADMIN</h3>
+    <button onclick="force('Tài')">Ép Tài</button>
+    <button onclick="force('Xỉu')">Ép Xỉu</button>
+    <button onclick="force(null)">Huỷ ép</button>
+    <button onclick="lockBet()">Khoá cược</button>
+  </div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut
-} from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
-import {
-  getFirestore,
-  doc,
-  setDoc,
-  getDoc
-} from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+import { getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut }
+from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+import { getFirestore,doc,setDoc,getDoc,updateDoc,collection,addDoc,onSnapshot }
+from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
-/* 🔥 FIREBASE CONFIG CỦA BẠN */
 const firebaseConfig = {
   apiKey: "AIzaSyC7MuVncVnX7FRwLkqLaQHrXOYULe80QCY",
   authDomain: "mylist644.firebaseapp.com",
   projectId: "mylist644",
-  storageBucket: "mylist644.appspot.com",
+  storageBucket: "mylist644.firebasestorage.app",
   messagingSenderId: "185723905502",
   appId: "1:185723905502:web:efe5c0640b3a7cc992694f"
 };
@@ -59,64 +96,97 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-/* ===== AUTH ===== */
-window.register = async () => {
-  const email = emailInput.value;
-  const pass = passwordInput.value;
-  try {
-    const res = await createUserWithEmailAndPassword(auth, email, pass);
-    await setDoc(doc(db, "users", res.user.uid), {
-      email,
-      money: 500000,
-      createdAt: Date.now()
-    });
-    msg.innerText = "✅ Đăng ký thành công";
-  } catch (e) {
-    msg.innerText = e.message;
-  }
-};
+let user=null,bet=0,choice=null,forceResult=null,locked=false;
 
-window.login = async () => {
-  try {
-    await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
-  } catch (e) {
-    msg.innerText = e.message;
-  }
-};
+window.register=async()=>{
+  let u=username.value,p=password.value;
+  await createUserWithEmailAndPassword(auth,u+"@game.com",p);
+  await setDoc(doc(db,"users",u),{money:50000,isAdmin:false});
+  alert("Đăng ký OK");
+}
 
-window.logout = () => signOut(auth);
+window.login=async()=>{
+  let u=username.value,p=password.value;
+  await signInWithEmailAndPassword(auth,u+"@game.com",p);
+  user=u;
+  userName.innerText=u;
+  loginPanel.style.display="none";
+  gamePanel.style.display="block";
+  loadUser();
+  listenAdmin();
+}
 
-/* ===== STATE ===== */
-onAuthStateChanged(auth, async user => {
-  if (!user) {
-    authDiv.style.display = "block";
-    gameDiv.style.display = "none";
-    return;
-  }
+function loadUser(){
+  onSnapshot(doc(db,"users",user),s=>{
+    money.innerText=s.data().money.toLocaleString();
+    if(s.data().isAdmin) adminPanel.style.display="block";
+  });
+}
 
-  authDiv.style.display = "none";
-  gameDiv.style.display = "block";
-  userEmail.innerText = user.email;
-
-  const ref = doc(db, "users", user.uid);
-  const snap = await getDoc(ref);
-
-  if (!snap.exists()) {
-    await setDoc(ref, { email: user.email, money: 500000 });
-    money.innerText = "500000";
-  } else {
-    money.innerText = snap.data().money;
+document.querySelectorAll(".chip").forEach(c=>{
+  c.onclick=()=>{
+    bet=+c.dataset.v;
+    document.querySelectorAll(".chip").forEach(x=>x.classList.remove("selected"));
+    c.classList.add("selected");
+    updateInfo();
   }
 });
 
-/* ===== DOM ===== */
-const emailInput = document.getElementById("email");
-const passwordInput = document.getElementById("password");
-const authDiv = document.getElementById("auth");
-const gameDiv = document.getElementById("game");
-const userEmail = document.getElementById("userEmail");
-const money = document.getElementById("money");
-const msg = document.getElementById("msg");
+window.choose=v=>{choice=v;updateInfo()}
+function updateInfo(){betInfo.innerText=`Cược: ${bet} | Chọn: ${choice||"-"}`}
+
+window.roll=async()=>{
+  if(locked||!bet||!choice) return alert("Không hợp lệ");
+  let uref=doc(db,"users",user);
+  let snap=await getDoc(uref);
+  let moneyNow=snap.data().money;
+  if(moneyNow<bet) return alert("Thiếu tiền");
+
+  let dice;
+  if(forceResult){
+    dice = forceResult==="Tài"?[4,4,4]:[1,1,1];
+  }else{
+    dice=[1,2,3].map(()=>Math.floor(Math.random()*6)+1);
+  }
+
+  [d1,d2,d3].forEach((d,i)=>d.innerText=dice[i]);
+  let sum=dice.reduce((a,b)=>a+b,0);
+  let rs=sum>=11?"Tài":"Xỉu";
+  let win=rs===choice;
+
+  await updateDoc(uref,{money:win?moneyNow+bet:moneyNow-bet});
+  result.innerText=`${rs} (${sum})`;
+}
+
+window.force=async(v)=>{
+  await setDoc(doc(db,"config","admin"),{force:v,locked},{merge:true});
+}
+
+window.lockBet=async()=>{
+  locked=!locked;
+  await setDoc(doc(db,"config","admin"),{locked},{merge:true});
+}
+
+function listenAdmin(){
+  onSnapshot(doc(db,"config","admin"),s=>{
+    if(!s.exists()) return;
+    forceResult=s.data().force;
+    locked=s.data().locked;
+  });
+}
+
+window.sendChat=async()=>{
+  if(!chatInput.value) return;
+  await addDoc(collection(db,"chat"),{u:user,m:chatInput.value});
+  chatInput.value="";
+}
+
+onSnapshot(collection(db,"chat"),s=>{
+  chatMessages.innerHTML="";
+  s.forEach(d=>{
+    chatMessages.innerHTML+=`<b>${d.data().u}:</b> ${d.data().m}<br>`;
+  });
+});
 </script>
 </body>
 </html>
