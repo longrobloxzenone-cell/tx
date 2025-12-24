@@ -7,186 +7,236 @@
 
 <style>
 body{
-  background:linear-gradient(to bottom,#8b0000,#000);
-  color:#fff;font-family:Arial Black;text-align:center;margin:0
+  background: linear-gradient(to bottom,#8b0000,#000);
+  color:#fff;
+  font-family:Arial, sans-serif;
+  text-align:center;
+  margin:0;
 }
-#owner{position:fixed;top:10px;left:10px;color:#ffd700;font-size:20px}
-input,button{padding:8px;margin:5px;border-radius:5px;border:none}
+input,button{
+  padding:8px;
+  margin:5px;
+  border-radius:5px;
+  border:none;
+}
 button{cursor:pointer}
-#wallet{font-size:20px;margin:10px}
-#diceArea{display:flex;justify-content:center;gap:15px;margin:20px}
-.dice{width:80px;height:80px;background:#fff;border-radius:12px;
-display:flex;align-items:center;justify-content:center;font-size:36px;color:#000}
-.chip{width:70px;height:70px;border-radius:50%;display:inline-flex;
-align-items:center;justify-content:center;margin:8px;font-weight:bold;cursor:pointer}
-.chip.selected{border:3px solid #ffd700}
-#adminPanel{display:none;border-top:1px solid #fff;margin-top:15px;padding-top:10px}
-#chatBox{width:300px;margin:auto;border:1px solid #fff;padding:5px}
-#chatMessages{height:150px;overflow-y:auto;background:#222;text-align:left;padding:5px}
+#diceArea{display:flex;justify-content:center;gap:10px;margin:20px}
+.dice{
+  width:80px;height:80px;
+  background:#fff;color:#000;
+  font-size:40px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:10px;
+}
+.chip{
+  display:inline-block;
+  width:60px;height:60px;
+  border-radius:50%;
+  line-height:60px;
+  background:#2196f3;
+  margin:5px;
+  cursor:pointer;
+}
+.chip.selected{outline:3px solid gold}
+#adminPanel{display:none;border-top:1px solid #fff;margin-top:10px}
+#chatMessages{
+  height:150px;
+  overflow:auto;
+  background:#222;
+  padding:5px;
+}
 </style>
 </head>
 
 <body>
-<div id="owner">lowt</div>
 
+<h2>TÀI XỈU FIREBASE</h2>
+
+<!-- LOGIN -->
 <div id="loginPanel">
-  <h2>Đăng nhập / Đăng ký</h2>
-  <input id="username" placeholder="Username">
-  <input id="password" type="password" placeholder="Password"><br>
-  <button onclick="login()">Đăng nhập</button>
+  <input id="username" placeholder="Tên đăng nhập">
+  <input id="password" type="password" placeholder="Mật khẩu"><br>
   <button onclick="register()">Đăng ký</button>
+  <button onclick="login()">Đăng nhập</button>
 </div>
 
+<!-- GAME -->
 <div id="gamePanel" style="display:none">
-  <h2>Xin chào <span id="userName"></span></h2>
+  <h3>Xin chào <span id="userName"></span></h3>
   <button onclick="logout()">Đăng xuất</button>
-  <div id="wallet">Ví: <span id="money">0</span> $</div>
+  <div>Ví: <span id="money">0</span> $</div>
 
   <div id="diceArea">
-    <div class="dice" id="d1">🎲</div>
-    <div class="dice" id="d2">🎲</div>
-    <div class="dice" id="d3">🎲</div>
+    <div class="dice" id="dice1">🎲</div>
+    <div class="dice" id="dice2">🎲</div>
+    <div class="dice" id="dice3">🎲</div>
   </div>
+
+  <div>
+    <div class="chip" data-value="1000">1K</div>
+    <div class="chip" data-value="5000">5K</div>
+    <div class="chip" data-value="10000">10K</div>
+  </div>
+
+  <div id="selectedBet">Cược: 0 | -</div>
+  <button onclick="chooseBet('Tài')">Tài</button>
+  <button onclick="chooseBet('Xỉu')">Xỉu</button>
+  <button onclick="rollDice()">Quay</button>
 
   <div id="result"></div>
 
+  <!-- CHAT -->
   <div>
-    <div class="chip" data-v="1000">1K</div>
-    <div class="chip" data-v="5000">5K</div>
-    <div class="chip" data-v="10000">10K</div>
-  </div>
-
-  <div id="betInfo">Cược: 0 | Chọn: -</div>
-  <button onclick="choose('Tài')">Tài</button>
-  <button onclick="choose('Xỉu')">Xỉu</button>
-  <button onclick="roll()">Quay</button>
-
-  <div id="chatBox">
     <div id="chatMessages"></div>
-    <input id="chatInput" placeholder="Chat...">
+    <input id="chatInput">
     <button onclick="sendChat()">Gửi</button>
   </div>
 
+  <!-- ADMIN -->
   <div id="adminPanel">
-    <h3>ADMIN</h3>
+    <h4>ADMIN</h4>
     <button onclick="force('Tài')">Ép Tài</button>
     <button onclick="force('Xỉu')">Ép Xỉu</button>
     <button onclick="force(null)">Huỷ ép</button>
-    <button onclick="lockBet()">Khoá cược</button>
+    <button onclick="toggleLock()">Khoá cược</button>
   </div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-import { getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut }
-from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
-import { getFirestore,doc,setDoc,getDoc,updateDoc,collection,addDoc,onSnapshot }
-from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
+/* 🔥 FIREBASE CỦA BẠN */
 const firebaseConfig = {
-  apiKey: "AIzaSyC7MuVncVnX7FRwLkqLaQHrXOYULe80QCY",
-  authDomain: "mylist644.firebaseapp.com",
-  projectId: "mylist644",
-  storageBucket: "mylist644.firebasestorage.app",
-  messagingSenderId: "185723905502",
-  appId: "1:185723905502:web:efe5c0640b3a7cc992694f"
+  apiKey: "AIzaSyA2iT-gWTUeRQUOx7wRa7hhsMc6cnDtess",
+  authDomain: "txtest2.firebaseapp.com",
+  projectId: "txtest2",
+  storageBucket: "txtest2.firebasestorage.app",
+  messagingSenderId: "917472071434",
+  appId: "1:917472071434:web:aaf32077b464fbc5e8b4f3"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-let user=null,bet=0,choice=null,forceResult=null,locked=false;
+let currentUser=null, bet=0, choice=null, locked=false, forceResult=null;
 
-window.register=async()=>{
-  let u=username.value,p=password.value;
-  await createUserWithEmailAndPassword(auth,u+"@game.com",p);
-  await setDoc(doc(db,"users",u),{money:50000,isAdmin:false});
+/* ===== FIX QUAN TRỌNG: GẮN WINDOW ===== */
+window.register = async ()=>{
+  const u=username.value,p=password.value;
+  const email=u+"@game.com";
+  await createUserWithEmailAndPassword(auth,email,p);
+  await setDoc(doc(db,"users",u),{money:500000,isAdmin:false});
   alert("Đăng ký OK");
 }
 
-window.login=async()=>{
-  let u=username.value,p=password.value;
-  await signInWithEmailAndPassword(auth,u+"@game.com",p);
-  user=u;
+window.login = async ()=>{
+  const u=username.value,p=password.value;
+  const email=u+"@game.com";
+  await signInWithEmailAndPassword(auth,email,p);
+  currentUser=u;
   userName.innerText=u;
   loginPanel.style.display="none";
   gamePanel.style.display="block";
   loadUser();
   listenAdmin();
+  listenChat();
 }
 
-function loadUser(){
-  onSnapshot(doc(db,"users",user),s=>{
-    money.innerText=s.data().money.toLocaleString();
-    if(s.data().isAdmin) adminPanel.style.display="block";
-  });
+window.logout = ()=>{
+  signOut(auth);
+  location.reload();
 }
 
 document.querySelectorAll(".chip").forEach(c=>{
   c.onclick=()=>{
-    bet=+c.dataset.v;
+    bet=+c.dataset.value;
     document.querySelectorAll(".chip").forEach(x=>x.classList.remove("selected"));
     c.classList.add("selected");
-    updateInfo();
+    updateBet();
   }
 });
 
-window.choose=v=>{choice=v;updateInfo()}
-function updateInfo(){betInfo.innerText=`Cược: ${bet} | Chọn: ${choice||"-"}`}
+window.chooseBet = c=>{
+  choice=c;
+  updateBet();
+}
 
-window.roll=async()=>{
-  if(locked||!bet||!choice) return alert("Không hợp lệ");
-  let uref=doc(db,"users",user);
-  let snap=await getDoc(uref);
-  let moneyNow=snap.data().money;
-  if(moneyNow<bet) return alert("Thiếu tiền");
+function updateBet(){
+  selectedBet.innerText=`Cược: ${bet} | ${choice||"-"}`;
+}
 
-  let dice;
-  if(forceResult){
-    dice = forceResult==="Tài"?[4,4,4]:[1,1,1];
-  }else{
-    dice=[1,2,3].map(()=>Math.floor(Math.random()*6)+1);
-  }
+async function loadUser(){
+  const s=await getDoc(doc(db,"users",currentUser));
+  money.innerText=s.data().money;
+  if(s.data().isAdmin) adminPanel.style.display="block";
+}
 
-  [d1,d2,d3].forEach((d,i)=>d.innerText=dice[i]);
-  let sum=dice.reduce((a,b)=>a+b,0);
+window.rollDice = async ()=>{
+  if(locked) return alert("Đang khoá cược");
+  if(!bet||!choice) return alert("Chưa chọn cược");
+  const ref=doc(db,"users",currentUser);
+  const s=await getDoc(ref);
+  let m=s.data().money;
+  if(m<bet) return alert("Không đủ tiền");
+
+  let d=[1,2,3].map(()=>Math.floor(Math.random()*6)+1);
+  dice1.innerText=d[0];dice2.innerText=d[1];dice3.innerText=d[2];
+  let sum=d[0]+d[1]+d[2];
   let rs=sum>=11?"Tài":"Xỉu";
+  if(forceResult) rs=forceResult;
   let win=rs===choice;
+  let newMoney=win?m+bet:m-bet;
 
-  await updateDoc(uref,{money:win?moneyNow+bet:moneyNow-bet});
+  await updateDoc(ref,{money:newMoney});
+  money.innerText=newMoney;
   result.innerText=`${rs} (${sum})`;
 }
 
-window.force=async(v)=>{
-  await setDoc(doc(db,"config","admin"),{force:v,locked},{merge:true});
-}
-
-window.lockBet=async()=>{
-  locked=!locked;
-  await setDoc(doc(db,"config","admin"),{locked},{merge:true});
+async function initAdmin(){
+  const r=doc(db,"config","admin");
+  if(!(await getDoc(r)).exists()) await setDoc(r,{locked:false,force:null});
 }
 
 function listenAdmin(){
+  initAdmin();
   onSnapshot(doc(db,"config","admin"),s=>{
-    if(!s.exists()) return;
-    forceResult=s.data().force;
     locked=s.data().locked;
+    forceResult=s.data().force;
   });
 }
 
-window.sendChat=async()=>{
+window.force=async v=>{
+  await updateDoc(doc(db,"config","admin"),{force:v});
+}
+window.toggleLock=async ()=>{
+  locked=!locked;
+  await updateDoc(doc(db,"config","admin"),{locked});
+}
+
+/* CHAT */
+window.sendChat=async ()=>{
   if(!chatInput.value) return;
-  await addDoc(collection(db,"chat"),{u:user,m:chatInput.value});
+  await addDoc(collection(db,"chat"),{
+    user:currentUser,
+    msg:chatInput.value,
+    time:Date.now()
+  });
   chatInput.value="";
 }
 
-onSnapshot(collection(db,"chat"),s=>{
-  chatMessages.innerHTML="";
-  s.forEach(d=>{
-    chatMessages.innerHTML+=`<b>${d.data().u}:</b> ${d.data().m}<br>`;
+function listenChat(){
+  const q=query(collection(db,"chat"),orderBy("time"));
+  onSnapshot(q,s=>{
+    chatMessages.innerHTML="";
+    s.forEach(d=>{
+      chatMessages.innerHTML+=`<b>${d.data().user}:</b> ${d.data().msg}<br>`;
+    });
+    chatMessages.scrollTop=9999;
   });
-});
+}
 </script>
 </body>
 </html>
