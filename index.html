@@ -35,8 +35,8 @@ button:hover { transform:scale(1.05); box-shadow:0 0 15px #fff; }
 <div id="authBox">
   <input id="email" placeholder="Email"><br>
   <input id="password" type="password" placeholder="Mật khẩu"><br>
-  <button onclick="login()">Đăng nhập</button>
   <button onclick="register()">Đăng ký</button>
+  <button onclick="login()">Đăng nhập</button>
 </div>
 
 <!-- Game Box -->
@@ -87,9 +87,9 @@ button:hover { transform:scale(1.05); box-shadow:0 0 15px #fff; }
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, increment, collection, addDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, updateDoc, onSnapshot, increment, collection, addDoc, getDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-// Firebase mới
+// Firebase config mới
 const firebaseConfig = {
   apiKey: "AIzaSyC7MuVncVnX7FRwLkqLaQHrXOYULe80QCY",
   authDomain: "mylist644.firebaseapp.com",
@@ -104,7 +104,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// DOM elements
+// DOM
 const email = document.getElementById("email");
 const password = document.getElementById("password");
 const moneyEl = document.getElementById("money");
@@ -121,12 +121,31 @@ const chatInput = document.getElementById("chatInput");
 
 let currentUser, choice=null, force=null, locked=false;
 
-// -------- AUTH --------
+// ======= AUTH =======
 async function register(){
-  const userCred = await createUserWithEmailAndPassword(auth,email.value,password.value);
-  await setDoc(doc(db,"users",userCred.user.uid),{email:userCred.user.email,money:1000,bet:0,isAdmin:false});
+  try {
+    const userCred = await createUserWithEmailAndPassword(auth,email.value,password.value);
+    await setDoc(doc(db,"users",userCred.user.uid),{
+      email:userCred.user.email,
+      money:1000,
+      bet:0,
+      isAdmin:false
+    });
+    showNotification("✅ Tạo tài khoản thành công!");
+  } catch(err){
+    showNotification("❌ Lỗi tạo tài khoản: " + err.message);
+  }
 }
-async function login(){ await signInWithEmailAndPassword(auth,email.value,password.value); }
+
+async function login(){
+  try {
+    await signInWithEmailAndPassword(auth,email.value,password.value);
+    showNotification("✅ Đăng nhập thành công!");
+  } catch(err){
+    showNotification("❌ Lỗi đăng nhập: " + err.message);
+  }
+}
+
 function logout(){ signOut(auth); }
 
 onAuthStateChanged(auth,async user=>{
@@ -142,15 +161,15 @@ onAuthStateChanged(auth,async user=>{
   onSnapshot(userRef,d=>{
     const userData = d.data();
     moneyEl.innerText=userData.money;
-    adminPanel.style.display = userData.isAdmin?"block":"none"; // Chỉ admin thấy
+    adminPanel.style.display = userData.isAdmin?"block":"none";
   });
 });
 
-// -------- GAME --------
+// ======= GAME =======
 function setChoice(c){ choice=c; document.getElementById("choice").innerText=c; }
 
 async function roll(){
-  if(locked) { showNotification("⚠ Cược đang bị khóa!"); return; }
+  if(locked){ showNotification("⚠ Cược đang bị khóa!"); return; }
   const betVal = Number(document.getElementById("betInput").value);
   if(!choice || betVal<=0) return alert("Chọn Tài/Xỉu và nhập cược");
 
@@ -172,7 +191,7 @@ async function roll(){
   },500);
 }
 
-// -------- PLAYER LIST --------
+// ======= PLAYER LIST =======
 function updatePlayerCard(uid,email,money,bet,isAdmin){
   let card=document.getElementById("user-"+uid);
   if(!card){
@@ -187,7 +206,7 @@ function updatePlayerCard(uid,email,money,bet,isAdmin){
 }
 onSnapshot(collection(db,"users"), snapshot=>{ snapshot.docs.forEach(doc=>{ const d=doc.data(); updatePlayerCard(doc.id,d.email,d.money,d.bet||0,d.isAdmin); }); });
 
-// -------- ADMIN --------
+// ======= ADMIN =======
 const configRef = doc(db,"config","game");
 setDoc(configRef,{force:null,locked:false},{merge:true});
 
@@ -209,7 +228,7 @@ async function toggleLock(){ await updateDoc(configRef,{locked:!locked}); }
 async function addMoney(){ const uid=targetUid.value,val=Number(amount.value); if(!uid||isNaN(val)) return alert("Nhập UID và số tiền"); await updateDoc(doc(db,"users",uid),{money:increment(val)}); adminStatus.innerText=`✅ Cộng ${val}$ cho ${uid}`; }
 async function subMoney(){ const uid=targetUid.value,val=Number(amount.value); if(!uid||isNaN(val)) return alert("Nhập UID và số tiền"); await updateDoc(doc(db,"users",uid),{money:increment(-val)}); adminStatus.innerText=`✅ Trừ ${val}$ của ${uid}`; }
 
-// -------- CHAT --------
+// ======= CHAT =======
 async function sendChat(){
   const msg = chatInput.value.trim();
   if(!msg) return;
