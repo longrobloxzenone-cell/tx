@@ -3,21 +3,35 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tài Xỉu Firebase</title>
-
+<title>Tài Xỉu Casino v9 + Chat</title>
 <style>
-body{background:#111;color:#fff;font-family:Arial;text-align:center}
-.hidden{display:none}
-.dice{font-size:40px;margin:10px}
-button,input{margin:5px;padding:6px}
-#adminPanel{border:1px solid #555;padding:10px;margin-top:15px}
+body { margin:0; padding:0; background: radial-gradient(circle,#0f0c29,#302b63,#24243e); font-family:Arial; color:white; text-align:center; }
+h2 { color:#ffd700; text-shadow:0 0 8px #fff; }
+#gameBox, #adminPanel, #playersBox, #chatBox { background: rgba(0,0,0,0.7); width:380px; margin:20px auto; padding:20px; border-radius:20px; box-shadow:0 0 25px #ff00ff; }
+.dice { font-size:50px; margin:15px; display:flex; justify-content:center; gap:10px; }
+.dice span { width:60px; height:60px; line-height:60px; display:inline-block; background: rgba(255,255,255,0.1); border-radius:10px; box-shadow:0 0 10px #fff; transition:0.2s; }
+.winEffect { animation: glow 0.8s infinite alternate; }
+.loseEffect { animation: shake 0.5s; }
+@keyframes shake { 0%{transform:translateX(0)} 25%{transform:translateX(-8px)} 50%{transform:translateX(8px)} 75%{transform:translateX(-8px)} 100%{transform:translateX(0)} }
+@keyframes glow { from{box-shadow:0 0 15px #00ff00} to{box-shadow:0 0 35px #00ff00} }
+button { margin:5px; padding:8px; border-radius:10px; border:none; font-size:16px; cursor:pointer; box-shadow:0 0 5px #fff; transition:0.2s; }
+button:hover { transform:scale(1.05); box-shadow:0 0 15px #fff; }
+.playerCard { background: rgba(255,255,255,0.1); margin:8px 0; padding:10px; border-radius:10px; box-shadow:0 0 10px #fff; text-align:left; }
+.playerCard .money { color:#00ff00; font-weight:bold; }
+.playerCard .bet { color:#ffd700; font-weight:bold; }
+.playerCard .role { color:#ff69b4; font-weight:bold; }
+#notification { position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#ff0;color:#000;padding:10px 20px;border-radius:10px;display:none;box-shadow:0 0 15px #fff;z-index:999;}
+#chatBox input { padding:5px; border-radius:5px; border:none; }
 </style>
 </head>
 <body>
 
-<h2>🎲 TÀI XỈU</h2>
+<h2>🎲 TÀI XỈU CASINO v9 + Chat</h2>
 
-<!-- AUTH -->
+<!-- Notification -->
+<div id="notification">Thông báo</div>
+
+<!-- Auth -->
 <div id="authBox">
   <input id="email" placeholder="Email"><br>
   <input id="password" type="password" placeholder="Mật khẩu"><br>
@@ -25,155 +39,193 @@ button,input{margin:5px;padding:6px}
   <button onclick="register()">Đăng ký</button>
 </div>
 
-<!-- GAME -->
+<!-- Game Box -->
 <div id="gameBox" class="hidden">
   <p>Xin chào: <span id="userEmail"></span></p>
   <p>Ví: <span id="money">0</span> $</p>
   <button onclick="logout()">Đăng xuất</button>
 
-  <div class="dice" id="dice">🎲 🎲 🎲</div>
+  <div class="dice" id="dice">
+    <span>🎲</span><span>🎲</span><span>🎲</span>
+  </div>
 
-  <p>Cược: <span id="bet">100</span> | Chọn: <span id="choice">-</span></p>
+  <p>Cược: <input type="number" id="betInput" value="100" style="width:70px;"> | Chọn: <span id="choice">-</span></p>
   <button onclick="setChoice('Tài')">Tài</button>
   <button onclick="setChoice('Xỉu')">Xỉu</button><br>
   <button onclick="roll()">Quay</button>
 
-  <!-- ADMIN -->
+  <!-- Player list -->
+  <div id="playersBox">
+    <h3>🎮 Người chơi</h3>
+    <div id="playerList"></div>
+  </div>
+
+  <!-- Chat Box -->
+  <div id="chatBox">
+    <h3>💬 Chat tổng</h3>
+    <div id="chatMessages" style="height:150px;overflow-y:auto;border:1px solid #fff;padding:5px;margin-bottom:5px;"></div>
+    <input id="chatInput" placeholder="Nhập tin nhắn..." style="width:75%">
+    <button onclick="sendChat()">Gửi</button>
+  </div>
+
+  <!-- Admin Panel -->
   <div id="adminPanel" class="hidden">
-    <h3>ADMIN PANEL</h3>
-
-    🎯 Tỉ lệ thắng:
-    <input id="winRateInput" type="number" step="0.01">
-    <button onclick="updateWinRate()">Cập nhật</button><br>
-
-    ⚠ Ép kết quả:
+    <h3>💼 ADMIN PANEL</h3>
+    ⚠ **Ép kết quả:** 
     <button onclick="forceResult('Tài')">Ép Tài</button>
     <button onclick="forceResult('Xỉu')">Ép Xỉu</button>
     <button onclick="forceResult(null)">Huỷ ép</button><br>
-
-    ⛔ Khoá cược:
-    <button onclick="toggleLock()">Bật / Tắt</button><br>
-
-    💸 Cộng tiền user:
-    <input id="targetUid" placeholder="UID user">
-    <input id="amount" type="number" placeholder="Số tiền">
-    <button onclick="addMoney()">Cộng</button>
-    <button onclick="subMoney()">Trừ</button>
-
+    ⛔ **Khoá cược:** <button onclick="toggleLock()">Bật / Tắt</button><br>
+    💸 **Quản lý tiền user:**<br>
+    UID user: <input id="targetUid" placeholder="UID user">
+    Số tiền: <input id="amount" type="number" placeholder="Số tiền">
+    <button onclick="addMoney()">Cộng tiền</button>
+    <button onclick="subMoney()">Trừ tiền</button>
     <p id="adminStatus"></p>
   </div>
+
+  <p id="resultDiv" style="font-size:20px;margin-top:10px;"></p>
 </div>
 
-<!-- FIREBASE v8 -->
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, increment, collection, addDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-<script>
-firebase.initializeApp({
+// Firebase config
+const firebaseConfig = {
   apiKey: "AIzaSyAyUe1QL_olzsDOSd2-hNlI-Y-mjPG8WpQ",
   authDomain: "tx78-78.firebaseapp.com",
-  projectId: "tx78-78"
-});
+  projectId: "tx78-78",
+  storageBucket: "tx78-78.firebasestorage.app",
+  messagingSenderId: "166220100814",
+  appId: "1:166220100814:web:928271b561494aa3190c9f",
+  measurementId: "G-LQDTCNZ2W5"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-const auth = firebase.auth();
-const db = firebase.firestore();
-
+// DOM elements
+const email = document.getElementById("email");
+const password = document.getElementById("password");
+const moneyEl = document.getElementById("money");
+const userEmail = document.getElementById("userEmail");
 const diceDiv = document.getElementById("dice");
+const diceSpans = diceDiv.querySelectorAll("span");
+const resultDiv = document.getElementById("resultDiv");
+const adminStatus = document.getElementById("adminStatus");
+const targetUid = document.getElementById("targetUid");
+const amount = document.getElementById("amount");
+const notification = document.getElementById("notification");
+const chatMessages = document.getElementById("chatMessages");
+const chatInput = document.getElementById("chatInput");
 
-let currentUser, choice=null, bet=100;
-let winRate=0.5, force=null, locked=false;
+let currentUser, choice=null, force=null, locked=false;
 
-/* AUTH */
-function register(){auth.createUserWithEmailAndPassword(email.value,password.value);}
-function login(){auth.signInWithEmailAndPassword(email.value,password.value);}
-function logout(){auth.signOut();}
+// -------- AUTH --------
+async function register(){
+  const userCred = await createUserWithEmailAndPassword(auth,email.value,password.value);
+  await setDoc(doc(db,"users",userCred.user.uid),{email:userCred.user.email,money:1000,bet:0,isAdmin:false});
+}
+async function login(){ await signInWithEmailAndPassword(auth,email.value,password.value); }
+function logout(){ signOut(auth); }
 
-/* AUTH STATE */
-auth.onAuthStateChanged(u=>{
-  if(!u){
-    authBox.classList.remove("hidden");
-    gameBox.classList.add("hidden");
-    return;
-  }
-  currentUser=u;
-  userEmail.innerText=u.email;
-  authBox.classList.add("hidden");
-  gameBox.classList.remove("hidden");
+onAuthStateChanged(auth,async user=>{
+  if(!user){ authBox.classList.remove("hidden"); gameBox.classList.add("hidden"); return; }
+  currentUser = user;
+  userEmail.innerText = user.email;
+  authBox.classList.add("hidden"); gameBox.classList.remove("hidden");
 
-  const ref=db.collection("users").doc(u.uid);
-  ref.get().then(d=>{
-    if(!d.exists) ref.set({money:1000,isAdmin:false});
-  });
+  const userRef = doc(db,"users",user.uid);
+  const docSnap = await getDoc(userRef);
+  if(!docSnap.exists()) await setDoc(userRef,{email:user.email,money:1000,bet:0,isAdmin:false});
 
-  ref.onSnapshot(d=>{
-    money.innerText=d.data().money;
-    adminPanel.classList.toggle("hidden",!d.data().isAdmin);
-  });
+  onSnapshot(userRef,d=>{ moneyEl.innerText=d.data().money; adminPanel.classList.toggle("hidden",!d.data().isAdmin); });
 });
 
-/* CONFIG */
-db.collection("config").doc("game").onSnapshot(d=>{
+// -------- GAME --------
+function setChoice(c){ choice=c; document.getElementById("choice").innerText=c; }
+
+async function roll(){
+  if(locked) { showNotification("⚠ Cược đang bị khóa!"); return; }
+  const betVal = Number(document.getElementById("betInput").value);
+  if(!choice || betVal<=0) return alert("Chọn Tài/Xỉu và nhập cược");
+
+  diceSpans.forEach(s=>s.innerText="🎲");
+  setTimeout(async ()=>{
+    const dice=[1,1,1].map(()=>Math.floor(Math.random()*6)+1);
+    diceSpans.forEach((s,i)=>s.innerText=["⚀","⚁","⚂","⚃","⚄","⚅"][dice[i]-1]);
+    let sum=dice.reduce((a,b)=>a+b,0);
+    let result=sum>=11?"Tài":"Xỉu";
+    if(force) result=force; else if(Math.random()<0.2) result = choice==="Tài"?"Xỉu":"Tài";
+    const win = result===choice;
+    await updateDoc(doc(db,"users",currentUser.uid),{money:increment(win?betVal:-betVal), bet:betVal});
+
+    diceDiv.classList.remove("winEffect","loseEffect"); void diceDiv.offsetWidth;
+    diceDiv.classList.add(win?"winEffect":"loseEffect");
+    resultDiv.innerHTML = `${win?"🔥 THẮNG":"💀 THUA"} | Tổng: ${sum}`;
+
+    await addDoc(collection(db,"logs"),{uid:currentUser.uid,dice,diceSum:sum,choice,result,win,time:Date.now()});
+  },500);
+}
+
+// -------- PLAYER LIST --------
+function updatePlayerCard(uid,email,money,bet,isAdmin){
+  let card=document.getElementById("user-"+uid);
+  if(!card){
+    card=document.createElement("div"); card.className="playerCard"; card.id="user-"+uid;
+    card.innerHTML=`<p>Email: ${email}</p><p>Tiền: <span class="money">${money}</span>$</p><p>Mức cược: <span class="bet">${bet}</span>$</p><p>Trạng thái: <span class="role">${isAdmin?"Admin":"User"}</span></p>`;
+    document.getElementById("playerList").appendChild(card);
+  } else {
+    card.querySelector(".money").innerText=money;
+    card.querySelector(".bet").innerText=bet;
+    card.querySelector(".role").innerText=isAdmin?"Admin":"User";
+  }
+}
+onSnapshot(collection(db,"users"), snapshot=>{ snapshot.docs.forEach(doc=>{ const d=doc.data(); updatePlayerCard(doc.id,d.email,d.money,d.bet||0,d.isAdmin); }); });
+
+// -------- ADMIN --------
+const configRef = doc(db,"config","game");
+setDoc(configRef,{force:null,locked:false},{merge:true});
+
+onSnapshot(configRef,d=>{
   if(d.exists){
-    winRate=d.data().winRate;
-    force=d.data().force||null;
-    locked=d.data().locked||false;
-    winRateInput.value=winRate;
+    const prevLocked = locked;
+    force = d.data().force || null;
+    locked = d.data().locked || false;
+    if(prevLocked !== null && prevLocked !== locked){
+      showNotification(locked ? "⚠ Cược đã bị khóa bởi Admin" : "✅ Cược đã mở trở lại");
+    }
   }
 });
 
-/* GAME */
-function setChoice(c){choice=c;document.getElementById("choice").innerText=c;}
+function showNotification(msg){ notification.innerText=msg; notification.style.display="block"; setTimeout(()=>{ notification.style.display="none"; },4000); }
 
-function roll(){
-  if(locked) return alert("Đang khoá cược");
-  if(!choice) return alert("Chọn Tài/Xỉu");
+async function forceResult(r){ await updateDoc(configRef,{force:r}); }
+async function toggleLock(){ await updateDoc(configRef,{locked:!locked}); }
+async function addMoney(){ const uid=targetUid.value,val=Number(amount.value); if(!uid||isNaN(val)) return alert("Nhập UID và số tiền"); await updateDoc(doc(db,"users",uid),{money:increment(val)}); adminStatus.innerText=`✅ Cộng ${val}$ cho ${uid}`; }
+async function subMoney(){ const uid=targetUid.value,val=Number(amount.value); if(!uid||isNaN(val)) return alert("Nhập UID và số tiền"); await updateDoc(doc(db,"users",uid),{money:increment(-val)}); adminStatus.innerText=`✅ Trừ ${val}$ của ${uid}`; }
 
-  let dice=[1,1,1].map(()=>Math.floor(Math.random()*6)+1);
-  diceDiv.innerText=dice.join(" ");
-  let sum=dice.reduce((a,b)=>a+b,0);
-  let result=sum>=11?"Tài":"Xỉu";
+// -------- CHAT --------
+async function sendChat(){
+  const msg = chatInput.value.trim();
+  if(!msg) return;
+  await addDoc(collection(db,"chat"),{uid:currentUser.uid,email:currentUser.email,message:msg,time:Date.now()});
+  chatInput.value="";
+}
 
-  if(force) result=force;
-  else if(Math.random()>winRate) result=choice==="Tài"?"Xỉu":"Tài";
-
-  const win=result===choice;
-
-  db.collection("users").doc(currentUser.uid).update({
-    money: firebase.firestore.FieldValue.increment(win?bet:-bet)
+const chatQuery = query(collection(db,"chat"), orderBy("time"));
+onSnapshot(chatQuery,snapshot=>{
+  chatMessages.innerHTML = "";
+  snapshot.docs.forEach(doc=>{
+    const d = doc.data();
+    const div = document.createElement("div");
+    div.innerHTML = `<b>${d.email}:</b> ${d.message}`;
+    chatMessages.appendChild(div);
   });
-
-  db.collection("logs").add({
-    uid:currentUser.uid,
-    result, dice, time:Date.now()
-  });
-
-  alert(win?"THẮNG":"THUA");
-}
-
-/* ADMIN */
-function updateWinRate(){
-  db.collection("config").doc("game").set({
-    winRate, force, locked
-  });
-}
-
-function forceResult(r){
-  db.collection("config").doc("game").update({force:r});
-}
-
-function toggleLock(){
-  db.collection("config").doc("game").update({locked:!locked});
-}
-
-function addMoney(){
-  db.collection("users").doc(targetUid.value)
-  .update({money:firebase.firestore.FieldValue.increment(+amount.value)});
-}
-function subMoney(){
-  db.collection("users").doc(targetUid.value)
-  .update({money:firebase.firestore.FieldValue.increment(-amount.value)});
-}
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+});
 </script>
 </body>
 </html>
