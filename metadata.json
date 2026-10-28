@@ -1,0 +1,6 @@
+{
+  "name": "Quản Lý Đơn Hàng - Sự Kiện Chung Sức Liên Quân Mobile",
+  "description": "Hệ thống quản lý đơn hàng, doanh thu - chi phí, đối soát đối tác và dashboard thông minh cho KOL/Creator Liên Quân Mobile",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
